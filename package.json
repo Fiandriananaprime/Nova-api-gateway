@@ -31,12 +31,14 @@
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
     "@fastify/websocket": "^11.2.0",
-    "@Fiandriananaprime/nova_api_type": "^1.1.0",
+    "@Fiandriananaprime/nova_api_type": "^1.1.2",
     "dotenv": "^17.4.2",
-    "fastify": "^5.12.4"
+    "fastify": "^5.12.4",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^3.2.4"
