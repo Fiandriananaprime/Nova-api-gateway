@@ -31,7 +31,7 @@
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
     "@fastify/websocket": "^11.2.0",
-    "@Fiandriananaprime/nova_api_type": "^1.1.0",
+    "@Fiandriananaprime/nova_api_type": "^1.1.2",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.4"
   },
