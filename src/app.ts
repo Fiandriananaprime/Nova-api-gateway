@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import {  registerCors, registerCookie, registerHelmet} from "./plugins";
 import { healthRoutes } from "./routes/health";
+import { registerProxies } from "./proxy";
 
  const buildApp = () => {
   const app = Fastify({
@@ -12,7 +13,7 @@ import { healthRoutes } from "./routes/health";
   app.register(registerHelmet);
 
   app.register(healthRoutes);
-
+  app.register(registerProxies);
   return app;
 }
 
