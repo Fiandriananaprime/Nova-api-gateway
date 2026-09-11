@@ -31,4 +31,10 @@ describe("request observability", () => {
       "request completed"
     );
   });
+
+  it("starts even when some upstream service URLs are not configured", async () => {
+    const app = buildApp();
+
+    await expect(app.ready()).resolves.toBeUndefined();
+  });
 });
