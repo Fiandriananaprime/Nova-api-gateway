@@ -10,7 +10,7 @@ export const env = {
   sellerFrontendUrl: process.env.SELLER_FRONTEND_URL,
   adminFrontendUrl: process.env.ADMIN_FRONTEND_URL,
 
-  cookieSecret: process.env.COOKIE_SECRET || "",
+  cookieSecret: process.env.COOKIE_SECRET,
 
   logLevel: process.env.LOG_LEVEL || "info",
 };
