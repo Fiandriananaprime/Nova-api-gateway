@@ -8,9 +8,14 @@ export const registerProxies = async (app: FastifyInstance) => {
     const upstream = services[route.service];
 
     if (!upstream) {
-      throw new Error(
-        `No service URL configured for "${route.service}"`
+      app.log.warn(
+        {
+          service: route.service,
+          prefix: route.prefix,
+        },
+        "Skipping proxy registration because service URL is not configured"
       );
+      continue;
     }
 
     await app.register(proxy, {

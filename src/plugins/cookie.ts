@@ -4,6 +4,6 @@ import { env } from "../config";
 
 export async function registerCookie(app: FastifyInstance) {
   await app.register(cookie, {
-    secret: env.cookieSecret || undefined,
+    secret: env.cookieSecret,
   });
 }
