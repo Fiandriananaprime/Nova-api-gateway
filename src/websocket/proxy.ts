@@ -9,8 +9,14 @@ function toWebSocketUrl(url: string) {
 export function proxyWebSocket(
   client: WebSocket,
   upstreamUrl: string,
+  headers?: Record<string, string>,
 ) {
-  const upstream = new WebSocket(toWebSocketUrl(upstreamUrl));
+  const upstream = new WebSocket(
+    toWebSocketUrl(upstreamUrl),
+    {
+      headers,
+    },
+  );
 
   upstream.on("open", () => {
     if (client.readyState === WebSocket.OPEN) {
@@ -22,15 +28,19 @@ export function proxyWebSocket(
     }
   });
 
-  client.on("message", (message) => {
+  client.on("message", (message, isBinary) => {
     if (upstream.readyState === WebSocket.OPEN) {
-      upstream.send(message);
+      upstream.send(message, {
+        binary: isBinary,
+      });
     }
   });
 
-  upstream.on("message", (message) => {
+  upstream.on("message", (message, isBinary) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      client.send(message, {
+        binary: isBinary,
+      });
     }
   });
 
@@ -53,7 +63,12 @@ export function proxyWebSocket(
   });
 
   client.on("error", () => {
-    upstream.close();
+    if (
+      upstream.readyState === WebSocket.OPEN ||
+      upstream.readyState === WebSocket.CONNECTING
+    ) {
+      upstream.close();
+    }
   });
 
   upstream.on("error", () => {

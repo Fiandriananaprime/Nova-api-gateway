@@ -21,6 +21,7 @@ export async function websocketRoutes(app: FastifyInstance) {
       proxyWebSocket(
         socket as WebSocket,
         `${upstream}/ws/orders/${request.params.id}`,
+        request.headers as Record<string, string>,
       );
     },
   );
@@ -41,6 +42,7 @@ export async function websocketRoutes(app: FastifyInstance) {
       proxyWebSocket(
         socket as WebSocket,
         `${upstream}/ws/orders/${request.params.id}/tracking`,
+        request.headers as Record<string, string>,
       );
     },
   );
@@ -61,6 +63,28 @@ export async function websocketRoutes(app: FastifyInstance) {
       proxyWebSocket(
         socket as WebSocket,
         `${upstream}/ws/admin/orders/${request.params.id}/tracking`,
+        request.headers as Record<string, string>,
+      );
+    },
+  );
+
+  app.get(
+    "/ws/notifications",
+    {
+      websocket: true,
+    },
+    (socket, request) => {
+      const upstream = services.notification;
+
+      if (!upstream) {
+        socket.close(1011, "Notification service unavailable");
+        return;
+      }
+
+      proxyWebSocket(
+        socket as WebSocket,
+        `${upstream}/ws/notifications`,
+        request.headers as Record<string, string>,
       );
     },
   );
