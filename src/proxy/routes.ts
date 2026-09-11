@@ -44,7 +44,7 @@ export const proxyRoutes: ProxyRoute[] = [
   { prefix: "/seller/reviews", service: "product" },
   { prefix: "/seller/promotions", service: "product" },
   { prefix: "/seller/customers", service: "user" },
-
+  
   { prefix: "/admin/profile", service: "user" },
   { prefix: "/admin/settings", service: "user" },
   { prefix: "/admin/security", service: "user" },
@@ -55,9 +55,9 @@ export const proxyRoutes: ProxyRoute[] = [
   { prefix: "/admin/products", service: "product" },
   { prefix: "/admin/categories", service: "product" },
   { prefix: "/admin/promotions", service: "product" },
+  { prefix: "/admin/orders/:id/tracking", service: "delivery" },
   { prefix: "/admin/reviews", service: "product" },
   { prefix: "/admin/orders", service: "order" },
-  { prefix: "/admin/orders/:id/tracking", service: "delivery" },
   { prefix: "/admin/delivery/agents", service: "delivery" },
   { prefix: "/admin/payments", service: "payment" },
   { prefix: "/admin/events", service: "admin" },
