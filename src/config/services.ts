@@ -9,5 +9,5 @@ export const services = {
   payment: process.env.PAYMENT_SERVICE_URL,
   notification: process.env.NOTIFICATION_SERVICE_URL,
   delivery: process.env.DELIVERY_SERVICE_URL,
-  tracking: process.env.TRACKING_SERVICE_URL,
+  admin: process.env.ADMIN_SERVICE_URL,
 };
