@@ -18,10 +18,12 @@ export const proxyRoutes: ProxyRoute[] = [
   { prefix: "/auth", service: "auth" },
 
   { prefix: "/account/notifications", service: "notification" },
+  { prefix: "/account/sessions", service: "auth"},
+  { prefix: "/account/security", service:"auth"},
+  { prefix:"/account/settings", service:"auth"},
+  {prefix:"/account/email",service:"auth"},
+  {prefix:"/account/password",service:"auth"},
   { prefix: "/account", service: "user" },
-
-  { prefix: "/profile", service: "user" },
-  { prefix: "/settings", service: "user" },
 
   { prefix: "/buyer/notifications/preferences", service: "user" },
   { prefix: "/buyer/payment-methods", service: "payment" },

@@ -1,5 +1,10 @@
 import Fastify from "fastify";
 
+import { 
+  registerHealth, 
+  registerVersion,registerMetrics 
+} from "@Fiandriananaprime/service-core";
+
 import {
   registerCors,
   registerCookie,
@@ -7,7 +12,7 @@ import {
   registerObservability,
 } from "./plugins";
 
-import { healthRoutes } from "./routes/health";
+import { registerRoutes } from "./route";
 import { registerProxies } from "./proxy";
 
 import {
@@ -28,8 +33,18 @@ const buildApp = () => {
   app.register(registerWebSocket);
   app.register(websocketRoutes);
 
-  app.register(healthRoutes);
+  app.register(registerRoutes);
   app.register(registerProxies);
+
+  registerHealth(app);
+
+registerVersion(app, {
+  service: "gateway portal",
+  version: process.env["SERVICE_VERSION"] ?? "unknown",
+  commit: process.env["GIT_COMMIT"] ?? "unknown"
+});
+
+registerMetrics(app);
 
   return app;
 };
