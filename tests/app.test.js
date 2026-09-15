@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import buildApp from "./app";
+import buildApp from "../src/app";
 describe("request observability", () => {
     it("logs request lifecycle information", async () => {
         const app = buildApp();

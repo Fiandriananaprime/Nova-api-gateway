@@ -19,6 +19,7 @@ import {
   registerWebSocket,
   websocketRoutes,
 } from "./websocket";
+import { registerErrorHandler } from "./errors/error-handler";
 
 const buildApp = () => {
   const app = Fastify({
@@ -29,6 +30,7 @@ const buildApp = () => {
   app.register(registerCookie);
   app.register(registerHelmet);
   app.register(registerObservability);
+  registerErrorHandler(app);
 
   app.register(registerWebSocket);
   app.register(websocketRoutes);
