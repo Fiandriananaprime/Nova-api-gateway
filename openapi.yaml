@@ -273,17 +273,40 @@ components:
     RegisterRequest:
       type: object
       required:
-      - firstName
-      - lastName
-      - email
-      - password
+        - firstName
+        - lastName
+        - password
       properties:
-        firstName: {type: string}
-        lastName: {type: string}
-        email: {type: string, format: email}
-        password: {type: string, format: password, minLength: 8}
-      description: Public registration. Creates a buyer account only; seller onboarding uses /auth/register/seller and 
-        admin accounts use /admin/admins.
+        firstName:
+          type: string
+        lastName:
+          type: string
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+      oneOf:
+        - required:
+            - email
+          properties:
+            email:
+              type: string
+              format: email
+
+        - required:
+            - phone
+          properties:
+            phone:
+              type: string
+              minLength: 10
+              maxLength: 14
+
+      description: >
+        Public registration. Creates a buyer account only.
+        Exactly one contact method must be provided: email or phone.
+        Seller onboarding uses /auth/register/seller.
+        Admin accounts are created through /admin/admins.
         
     LoginRequest:
       type: object
@@ -767,7 +790,6 @@ components:
         status:
           type: string
           enum:
-          - not_submitted
           - pending
           - approved
           - rejected
@@ -1724,7 +1746,7 @@ paths:
         '409': {description: Email already in use}
         '422': {$ref: '#/components/responses/ValidationError'}
       security: []
-
+  
   /auth/register/seller:
     post:
       tags: [Auth]
@@ -1795,6 +1817,37 @@ paths:
       responses:
         '202': {description: Password reset request accepted}
 
+  /auth/email/send-verification:
+    post:
+      tags:
+        - Auth
+      summary: Resend email verification code
+      description: Resends a verification code to the specified email address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        '204':
+          description: Verification code sent successfully
+        '400':
+          description: Invalid email address
+        '404':
+          description: User not found
+        '409':
+          description: Email already verified
+        '429':
+          description: Too many verification code requests
+
   /auth/email/verify:
     post:
       tags: [Auth]
@@ -1811,15 +1864,14 @@ paths:
       parameters:
       - $ref: '#/components/parameters/CsrfHeader'
 
+
+
   /auth/phone/send-verification:
     post:
       tags: [Auth]
       summary: Send phone verification code
       responses:
         '204': {description: Verification sent}
-      x-csrf-required: true
-      parameters:
-      - $ref: '#/components/parameters/CsrfHeader'
 
   /auth/phone/verify:
     post:
@@ -1836,6 +1888,8 @@ paths:
       x-csrf-required: true
       parameters:
       - $ref: '#/components/parameters/CsrfHeader'
+
+
 
 ### ACCOUNT
 
@@ -3808,6 +3862,21 @@ paths:
                     type: array
                     items: {$ref: '#/components/schemas/SellerApplication'}
                   meta: {$ref: '#/components/schemas/PaginationMeta'}
+                  counts:
+                    type: object
+                    properties:
+                      all:
+                        type: integer
+                        example: 120
+                      pending:
+                        type: integer
+                        example: 45
+                      approved:
+                        type: integer
+                        example: 60
+                      rejected:
+                        type: integer
+                        example: 15
 
   /admin/sellers/applications/{id}:
     get:

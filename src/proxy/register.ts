@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import proxy from "@fastify/http-proxy";
-import { services } from "../config";
-import { proxyRoutes } from "./routes";
+import { services } from "../config/index.js";
+import { proxyRoutes } from "./routes.js";
+
+const API_PREFIX = "/api";
 
 export const registerProxies = async (app: FastifyInstance) => {
   for (const route of proxyRoutes) {
@@ -21,7 +23,7 @@ export const registerProxies = async (app: FastifyInstance) => {
     await app.register(proxy, {
       upstream,
       prefix: route.prefix,
-      rewritePrefix: "",
+      rewritePrefix: `${API_PREFIX}${route.prefix}`,
     });
   }
-}
+};

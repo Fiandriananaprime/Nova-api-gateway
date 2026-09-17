@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type WebSocket from "ws";
 
-import { services } from "../config";
-import { proxyWebSocket } from "./proxy";
+import { services } from "../config/index.js";
+import { proxyWebSocket } from "./proxy.js";
 
 export async function websocketRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>(

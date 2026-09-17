@@ -10,16 +10,16 @@ import {
   registerCookie,
   registerHelmet,
   registerObservability,
-} from "./plugins";
+} from "./plugins/index.js";
 
-import { registerRoutes } from "./route";
-import { registerProxies } from "./proxy";
+import { registerRoutes } from "./route.js";
+import { registerProxies } from "./proxy/index.js";
 
 import {
   registerWebSocket,
   websocketRoutes,
-} from "./websocket";
-import { registerErrorHandler } from "./errors/error-handler";
+} from "./websocket/index.js";
+import { registerErrorHandler } from "./errors/error-handler.js";
 
 const buildApp = () => {
   const app = Fastify({

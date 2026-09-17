@@ -1,2 +1,2 @@
-export { proxyRoutes } from "./routes";
-export { registerProxies } from "./register";
+export { proxyRoutes } from "./routes.js";
+export { registerProxies } from "./register.js";

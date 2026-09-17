@@ -1,28 +1,18 @@
 
 import { FastifyInstance } from "fastify";
-import { login, register } from "../service/auth.service";
-import { createUserDto, requestLogin } from "../type/auth";
+import { authenticate } from "../middleware/auth.middleware";
+import { AdminController} from "../controller/admin"
+import { createApplication } from "../type/admin";
 
 export  const authRoutes = async (app: FastifyInstance) => {
-  app.post<{ Body: createUserDto }>(
-    "/auth/register",
-    async (request, reply) => {
-      const user = await register(request.body);
+    const adminController = new AdminController();
+    
+    app.register((router) => {
+        router.post<{Body:createApplication}>(
+            "/auth/register/seller",
+            {preHandler:authenticate},
+            adminController.registerSeller.bind(adminController)
+        )
+    })
 
-      return reply.code(201).send(user);
-    }
-  );
-
-  app.post<{Body:requestLogin}>(
-    "/auth/login",
-    async (request, reply) => {
-        const { user, cookies } = await login(request.body);
-
-        if (cookies.length > 0) {
-          reply.header("set-cookie", cookies);
-        }
-
-        return reply.code(200).send(user)
-    }
-  )
 }
