@@ -486,13 +486,78 @@ components:
           type: array
           items: {$ref: '#/components/schemas/ProductVariant'}
         status:
-          type: string
-          enum: [draft, pending, approved, rejected]
+          $ref: "#/components/schemas/ProductStatus"
+        moderationStatus:
+          $ref: "#/components/schemas/ProductModerationStatus"
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
         views: {type: integer, default: 0}
         soldCount: {type: integer, default: 0}
         wishlistCount: {type: integer, default: 0}
+
+    ProductModerationStatus:
+      type: string
+      enum:
+        - draft
+        - pending
+        - approved
+        - rejected
+
+    ProductStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+
+    ProductSummary:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - rating
+        - reviewsCount
+        - storeId
+        - categoryId
+        - status
+        - images
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+          nullable: true
+        price:
+          type: number
+          format: double
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        reviewsCount:
+          type: integer
+          minimum: 0
+        storeId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+        images:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
 
     ProductInput:
       type: object
@@ -1722,9 +1787,6 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
 
-
-    
-
 paths:
   /auth/register:
     post:
@@ -2250,12 +2312,6 @@ paths:
       - name: category
         in: query
         schema: {type: string}
-      - name: sellerId
-        in: query
-        schema: {type: string, format: uuid}
-      - name: storeId
-        in: query
-        schema: {type: string, format: uuid}
       - name: minPrice
         in: query
         schema: {type: number}
@@ -2272,7 +2328,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [relevance, price_asc, price_desc, rating, newest]
+          enum: [relevance, price_asc, price_desc, rating, newest,popularity]
           default: relevance
       responses:
         '200':
@@ -2284,7 +2340,7 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: {$ref: '#/components/schemas/Product'}
+                    items: {$ref: '#/components/schemas/ProductSummary'}
                   meta: {$ref: '#/components/schemas/PaginationMeta'}
 
   /products/featured:
@@ -2303,7 +2359,7 @@ paths:
                   data:
                     type: array
                     maxItems: 8
-                    items: {$ref: '#/components/schemas/Product'}
+                    items: {$ref: '#/components/schemas/ProductSummary'}
                   meta: {$ref: '#/components/schemas/PaginationMeta'}
 
   /products/{id}:
