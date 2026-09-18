@@ -126,6 +126,13 @@ components:
       name: limit
       in: query
       schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    CursorParam:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Cursor for pagination
     SearchParam:
       name: search
       in: query
@@ -450,6 +457,28 @@ components:
           type: array
           items: {type: string}
 
+    ProductBuyer:
+      type: object
+      required: [id, name, price, storeId, storeName, categoryId, categoryName, stock, images, rating, reviewsCount]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        brand: {type: string, nullable: true}
+        description: {type: string}
+        price: {type: number, format: double}
+        rating: {type: number, minimum: 0, maximum: 5}
+        reviewsCount: {type: integer, minimum: 0}
+        storeId: {type: string, format: uuid}
+        storeName: {type: string}
+        categoryId: {type: string, format: uuid}
+        categoryName: {type: string}
+        images: {type: array, items: {type: object, properties: {url: {type: string, format: uri}, isDefault: {type: boolean}}}}
+        stock: {type: integer, minimum: 0}
+        sku: {type: string}
+        tags: {type: array, items: {type: string}}
+        specs: {$ref: '#/components/schemas/ProductSpecs'}
+        variants: {type: array, items: {$ref: '#/components/schemas/ProductVariant'}}
+        createdAt: {type: string, format: date-time}
     Product:
       type: object
       required: [id, name, price, storeId, categoryId, stock]
@@ -603,13 +632,26 @@ components:
         followersCount: {type: integer}
         description: {type: string, nullable: true}
         isOpen: {type: boolean}
-        isFollowedByCurrentUser: {type: boolean}
+        isFollowedByCurrentUser: {type: boolean, nullable: true}
         contact:
           type: object
           properties:
             phone: {type: string, nullable: true}
             email: {type: string, format: email, nullable: true}
             website: {type: string, nullable: true}
+
+    StoreSummary:
+      type: object
+      required: [id, name, slug, logoUrl, verified, rating, reviewsCount, productsCount]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        slug: {type: string}
+        logoUrl: {type: string, nullable: true}
+        verified: {type: boolean}
+        rating: {type: number, minimum: 0, maximum: 5}
+        reviewsCount: {type: integer}
+        productsCount: {type: integer}
 
     BusinessHours:
       type: object
@@ -672,7 +714,8 @@ components:
           type: boolean
         helpfulCount:
           type: integer
-        status: {type: string, enum: [published, hidden, pending]}
+        status: {type: string, enum: [published, hidden, pending,rejected]}
+
     ReviewInput:
       type: object
       required: [rating, comment]
@@ -2311,13 +2354,16 @@ paths:
       - {$ref: '#/components/parameters/LimitParam'}
       - name: category
         in: query
-        schema: {type: string}
+        schema: {type: string, format: uuid}
       - name: minPrice
         in: query
         schema: {type: number}
       - name: maxPrice
         in: query
         schema: {type: number}
+      - name: brand
+        in: query
+        schema: {type: string}
       - name: minRating
         in: query
         schema: {type: number, minimum: 0, maximum: 5}
@@ -2355,13 +2401,14 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - data
                 properties:
                   data:
                     type: array
                     maxItems: 8
-                    items: {$ref: '#/components/schemas/ProductSummary'}
-                  meta: {$ref: '#/components/schemas/PaginationMeta'}
-
+                    items:
+                      $ref: '#/components/schemas/ProductSummary'
   /products/{id}:
     get:
       tags: [Catalog]
@@ -2374,7 +2421,7 @@ paths:
           description: Product
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/Product'}
+              schema: {$ref: '#/components/schemas/ProductBuyer'}
         '404': {$ref: '#/components/responses/NotFound'}
 
   /products/{id}/related:
@@ -2384,6 +2431,8 @@ paths:
       security: []
       parameters:
       - {$ref: '#/components/parameters/IdParam'}
+      - {$ref: '#/components/parameters/LimitParam'}
+      - {$ref: '#/components/parameters/CursorParam'}
       responses:
         '200':
           description: Related products
@@ -2392,12 +2441,19 @@ paths:
               schema:
                 type: object
                 properties:
-                  sameCategory:
-                    type: array
-                    items: {$ref: '#/components/schemas/Product'}
-                  sameSeller:
-                    type: array
-                    items: {$ref: '#/components/schemas/Product'}
+                  data:
+                    type: object
+                    properties:
+                      sameCategory:
+                        type: array
+                        items: {$ref: '#/components/schemas/ProductBuyer'}
+                      sameSeller:
+                        type: array
+                        items: {$ref: '#/components/schemas/ProductBuyer'}
+                  meta:
+                    properties:
+                      nextCursor: {type: number}
+                      hasMore: {type: boolean}
 
   /products/{id}/reviews:
     get:
@@ -2463,7 +2519,7 @@ paths:
                   data:
                     type: array
                     maxItems: 6
-                    items: {$ref: '#/components/schemas/Store'}
+                    items: {$ref: '#/components/schemas/StoreSummary'}
                   meta: {$ref: '#/components/schemas/PaginationMeta'}
 
   /stores:
@@ -2475,9 +2531,6 @@ paths:
       - {$ref: '#/components/parameters/SearchParam'}
       - {$ref: '#/components/parameters/PageParam'}
       - {$ref: '#/components/parameters/LimitParam'}
-      - name: verified
-        in: query
-        schema: {type: boolean}
       - name: location
         in: query
         schema: {type: string}
@@ -2491,7 +2544,7 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: {$ref: '#/components/schemas/Store'}
+                    items: {$ref: '#/components/schemas/StoreSummary'}
                   meta: {$ref: '#/components/schemas/PaginationMeta'}
 
   /stores/{id}:

@@ -11,3 +11,16 @@ export const authenticate = async (request:FastifyRequest) => {
 
     request.userId = session.userId
 }
+
+export const authenticateOptional = async (request: FastifyRequest) => {
+  const accessToken = request.cookies.access_token;
+
+  if (!accessToken) {
+    request.userId = null;
+    return;
+  }
+
+  const session = await authClient.validateSession(accessToken);
+
+  request.userId = session.userId;
+};

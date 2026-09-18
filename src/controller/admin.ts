@@ -8,7 +8,7 @@ export class AdminController {
     async registerSeller (request:FastifyRequest<{Body:createApplication}>,reply:FastifyReply)  {
         const response = await adminClient.registerSeller({
             ...request.body,
-            userId:request.userId,
+            userId:request.userId!,
         });
     
         return reply.status(response.status).send(response.data)
