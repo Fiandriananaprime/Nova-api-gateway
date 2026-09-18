@@ -6,6 +6,6 @@ export const PublicRoute = ( app: FastifyInstance ) => {
     const publicController = new PublicController()
 
     app.register((route) => {
-        route.get<{Querystring:storeQuery}>("/stores",{preHandler:authenticateOptional},publicController.getAllProducts.bind(publicController))
+        route.get<{ Params:{id:string}}>("/stores/:id",{preHandler:authenticateOptional},publicController.getAllProducts.bind(publicController))
     })
 }

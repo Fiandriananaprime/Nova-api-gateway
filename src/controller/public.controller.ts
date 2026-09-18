@@ -8,11 +8,11 @@ export type storeQuery = {
     location?:string
 }
 export class PublicController {
-    async getAllProducts(request: FastifyRequest<{Querystring: storeQuery}>,reply:FastifyReply){
-        const {page = 1,limit = 20,search,location} = request.query
+    async getAllProducts(request: FastifyRequest<{ Params:{id:string};}>,reply:FastifyReply){
+        const {id} = request.params
         const userId = request.userId ?? undefined;
 
-        const response = await storeClient.getProducts(page,limit,search,location,userId)
+        const response = await storeClient.getProducts(id,userId)
         return reply.status(response.status).send(response.data)
     }
 }
