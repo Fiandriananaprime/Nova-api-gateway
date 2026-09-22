@@ -1,2 +1,2 @@
-export { registerWebSocket } from "./register";
-export { websocketRoutes } from "./routes";
+export { registerWebSocket } from "./register.js";
+export { websocketRoutes } from "./routes.js";

@@ -7,9 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "start": "node dist/server.js"
   },
   "repository": {
     "type": "git",
@@ -31,7 +29,9 @@
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
     "@fastify/websocket": "^11.2.0",
-    "@Fiandriananaprime/nova_api_type": "^1.1.2",
+    "@Fiandriananaprime/nova_api_type": "^1.1.5",
+    "@Fiandriananaprime/service-core": "^1.0.1",
+    "axios": "^1.20.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.4",
     "ws": "^8.21.3"
