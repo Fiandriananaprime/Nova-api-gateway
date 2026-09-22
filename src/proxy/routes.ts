@@ -12,10 +12,11 @@ export type ServiceName =
 export interface ProxyRoute {
   prefix: string;
   service: ServiceName;
+  public?: boolean;
 }
 
 export const proxyRoutes: ProxyRoute[] = [
-  { prefix: "/auth", service: "auth" },
+  { prefix: "/auth", service: "auth", public: true },
 
   { prefix: "/account/notifications", service: "notification" },
   { prefix: "/account/sessions", service: "auth"},
@@ -82,7 +83,10 @@ export const proxyRoutes: ProxyRoute[] = [
 
   { prefix: "/delivery", service: "delivery" },
 
-  { prefix: "/categories", service: "product" },
-  { prefix: "/products", service: "product" },
-  { prefix: "/stores", service: "store" },
+  { prefix: "/categories", service: "product", public: true },
+  { prefix: "/products", service: "product", public: true },
+  { prefix: "/stores/:id/follow", service: "store" },
+  { prefix: "/stores/:id/products", service:"product", public: true },
+  { prefix: "/stores/:id/reviews", service: "product", public: true },
+  { prefix: "/stores", service: "store", public: true },
 ];

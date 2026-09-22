@@ -3,9 +3,16 @@ import { AuthClient } from "../clients/auth.client";
 
 const authClient = new AuthClient();
 
+const unauthorized = (message = "Unauthorized") => {
+  const error = new Error(message) as Error & { statusCode: number; code: string };
+  error.statusCode = 401;
+  error.code = "UNAUTHORIZED";
+  return error;
+};
+
 export const authenticate = async (request:FastifyRequest) => {
     const accessToken = request.cookies.access_token;
-    if(!accessToken) throw new Error("Unauthorized");
+    if(!accessToken) throw unauthorized();
 
     const session = await authClient.validateSession(accessToken);
 

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import proxy from "@fastify/http-proxy";
 import { services } from "../config/index.js";
 import { proxyRoutes } from "./routes.js";
+import { authenticate } from "../middleware/auth.middleware.js";
 
 const API_PREFIX = "/api";
 
@@ -24,6 +25,7 @@ export const registerProxies = async (app: FastifyInstance) => {
       upstream,
       prefix: route.prefix,
       rewritePrefix: `${API_PREFIX}${route.prefix}`,
+      preHandler: route.public ? undefined : authenticate,
     });
   }
 };

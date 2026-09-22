@@ -98,10 +98,12 @@ tags:
   description: Global activity stream for buyers, sellers, moderators and delivery agents
 - name: Admin - Admin Accounts
   description: Administration of admin, moderator and delivery accounts
-security:
-- cookieAuth: []
 components:
   securitySchemes:
+    sudoMode:
+      type: apiKey
+      in: cookie
+      name: sudo_mode
     cookieAuth:
       type: apiKey
       in: cookie
@@ -203,6 +205,19 @@ components:
     UserStatus:
       type: string
       enum: [active, suspended]
+
+    AuthMe:
+      type: object
+      required: [userId, email, phone, role, status, adminRole, emailVerified, phoneVerified]
+      properties:
+        userId: {type: string, format: uuid}
+        email: {type: string, format: email}
+        phone: {type: string, nullable: true}
+        role: {$ref: '#/components/schemas/UserRole'}
+        status: {$ref: '#/components/schemas/UserStatus'}
+        adminRole: {$ref: '#/components/schemas/AdminRole', nullable: true}
+        emailVerified: {type: boolean}
+        phoneVerified: {type: boolean}
 
     AdminRole:
       type: string
@@ -332,16 +347,11 @@ components:
 
     ForgotPasswordRequest:
       type: object
-      required: [email]
+      required: [identifier]
       properties:
-        email: {type: string, format: email}
-
-    ChangeEmailRequest:
-      type: object
-      required: [newEmail, password]
-      properties:
-        newEmail: {type: string, format: email}
-        password: {type: string, format: password}
+        identifier:
+          type: string
+          description: Email or phone number of the account to reset password for.
 
     VerificationCodeRequest:
       type: object
@@ -479,6 +489,7 @@ components:
         specs: {$ref: '#/components/schemas/ProductSpecs'}
         variants: {type: array, items: {$ref: '#/components/schemas/ProductVariant'}}
         createdAt: {type: string, format: date-time}
+
     Product:
       type: object
       required: [id, name, price, storeId, categoryId, stock]
@@ -540,53 +551,20 @@ components:
 
     ProductSummary:
       type: object
-      required:
-        - id
-        - name
-        - price
-        - rating
-        - reviewsCount
-        - storeId
-        - categoryId
-        - status
-        - images
+      required: [id, name, price, rating, reviewsCount, storeId, categoryId, status, images]
       properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        brand:
-          type: string
-          nullable: true
-        price:
-          type: number
-          format: double
-        rating:
-          type: number
-          format: double
-          minimum: 0
-          maximum: 5
-        reviewsCount:
-          type: integer
-          minimum: 0
-        storeId:
-          type: string
-          format: uuid
-        categoryId:
-          type: string
-          format: uuid
-        status:
-          $ref: "#/components/schemas/ProductStatus"
-        images:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        tags:
-          type: array
-          items:
-            type: string
+        id: {type: string, format: uuid}
+        name: {type: string}
+        brand: {type: string, nullable: true}
+        price: {type: number, format: double}
+        rating: {type: number, format: double, minimum: 0, maximum: 5}
+        reviewsCount: {type: integer, minimum: 0}
+        storeId: {type: string, format: uuid}
+        categoryId: {type: string, format: uuid}
+        status: {$ref: "#/components/schemas/ProductStatus"}
+        images: {type: string}
+        createdAt: {type: string, format: date-time}
+        tags: {type: array, items: {type: string}}
 
     ProductInput:
       type: object
@@ -707,9 +685,7 @@ components:
         replied: {type: boolean}
         reply: {type: string, nullable: true}
         replyDate: {type: string, format: date-time, nullable: true}
-        productImage:
-          type: string
-          nullable: true
+        productImage: {type: string}
         verifiedPurchase:
           type: boolean
         helpfulCount:
@@ -1906,7 +1882,7 @@ paths:
           description: Current user
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/User'}
+              schema: {$ref: '#/components/schemas/AuthMe'}
         '401': {$ref: '#/components/responses/Unauthorized'}
 
   /auth/forgot-password:
@@ -1994,6 +1970,61 @@ paths:
       parameters:
       - $ref: '#/components/parameters/CsrfHeader'
 
+  /auth/sudo/{channel}:
+    post:
+      tags: [Auth]
+      summary: Send a sudo-mode verification code
+      description: Sends a security verification code by email or phone before a sensitive action.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      responses:
+        '204': {description: Sudo verification code sent}
+        '400': {description: Unsupported verification channel}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {description: Too many verification code requests}
+      x-csrf-required: true
+      parameters:
+        - name: channel
+          in: path
+          required: true
+          description: Delivery channel for the sudo verification code.
+          schema:
+            type: string
+            enum: [email, phone]
+        - $ref: '#/components/parameters/CsrfHeader'
+
+  /auth/sudo/{channel}/verify:
+    post:
+      tags: [Auth]
+      summary: Verify a sudo-mode code
+      description: Verifies the one-time code required for a sensitive action.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - name: channel
+          in: path
+          required: true
+          description: Channel used to receive the sudo verification code.
+          schema:
+            type: string
+            enum: [email, phone]
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationCodeRequest'
+      responses:
+        '204': {description: Sudo verification accepted}
+        '400': {description: Invalid or expired verification code}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+      x-csrf-required: true
+
 
 
 ### ACCOUNT
@@ -2030,18 +2061,85 @@ paths:
     patch:
       tags: [Account]
       summary: Change account email
+      security:
+        - cookieAuth: []
+          sudoMode: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/ChangeEmailRequest'}
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
       responses:
-        '200':
-          description: Email change requested
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/User'}
+        '204': {description: Email change verification code sent}
         '409': {description: Email already in use}
+      x-csrf-required: true
+      parameters:
+      - $ref: '#/components/parameters/CsrfHeader'
+
+  /account/email/confirm:
+    post:
+      tags: [Account]
+      summary: Confirm account email change
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VerificationCodeRequest'}
+      responses:
+        '204': {description: Email changed}
+        '400': {description: Invalid or expired verification code}
+        '404': {description: Pending email change not found}
+      x-csrf-required: true
+      parameters:
+      - $ref: '#/components/parameters/CsrfHeader'
+
+  /account/phone:
+    patch:
+      tags: [Account]
+      summary: Change account phone number
+      security:
+        - cookieAuth: []
+          sudoMode: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: {type: string, minLength: 6, maxLength: 30}
+      responses:
+        '204': {description: Phone change verification code sent}
+        '409': {description: Phone number already in use}
+      x-csrf-required: true
+      parameters:
+      - $ref: '#/components/parameters/CsrfHeader'
+
+  /account/phone/confirm:
+    post:
+      tags: [Account]
+      summary: Confirm account phone change
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VerificationCodeRequest'}
+      responses:
+        '204': {description: Phone number changed}
+        '400': {description: Invalid or expired verification code}
+        '404': {description: Pending phone change not found}
       x-csrf-required: true
       parameters:
       - $ref: '#/components/parameters/CsrfHeader'
@@ -2050,6 +2148,8 @@ paths:
     patch:
       tags: [Account]
       summary: Change account password
+      security:
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -2328,21 +2428,6 @@ paths:
                 type: array
                 items: {$ref: '#/components/schemas/Category'}
 
-  /categories/{id}:
-    get:
-      tags: [Catalog]
-      summary: Category details
-      security: []
-      parameters:
-      - {$ref: '#/components/parameters/IdParam'}
-      responses:
-        '200':
-          description: Category
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/Category'}
-        '404': {$ref: '#/components/responses/NotFound'}
-
   /products:
     get:
       tags: [Catalog]
@@ -2400,15 +2485,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - data
-                properties:
-                  data:
-                    type: array
-                    maxItems: 8
-                    items:
-                      $ref: '#/components/schemas/ProductSummary'
+                type: array
+                maxItems: 8
+                items:
+                  $ref: '#/components/schemas/ProductSummary'
+
   /products/{id}:
     get:
       tags: [Catalog]
@@ -2442,17 +2523,11 @@ paths:
                 type: object
                 properties:
                   data:
-                    type: object
-                    properties:
-                      sameCategory:
-                        type: array
-                        items: {$ref: '#/components/schemas/ProductBuyer'}
-                      sameSeller:
-                        type: array
-                        items: {$ref: '#/components/schemas/ProductBuyer'}
+                    type: array
+                    items: {$ref: '#/components/schemas/ProductSummary'}
                   meta:
                     properties:
-                      nextCursor: {type: number}
+                      nextCursor: {type: string}
                       hasMore: {type: boolean}
 
   /products/{id}/reviews:
@@ -2462,8 +2537,8 @@ paths:
       security: []
       parameters:
       - {$ref: '#/components/parameters/IdParam'}
-      - {$ref: '#/components/parameters/PageParam'}
       - {$ref: '#/components/parameters/LimitParam'}
+      - {$ref: '#/components/parameters/CursorParam'}
       - name: rating
         in: query
         schema: {type: string, enum: [all, '1', '2', '3', '4', '5'], default: all}
@@ -2478,7 +2553,10 @@ paths:
                   data:
                     type: array
                     items: {$ref: '#/components/schemas/Review'}
-                  meta: {$ref: '#/components/schemas/PaginationMeta'}
+                  meta:
+                    properties:
+                      nextCursor: {type: string}
+                      hasMore: {type: boolean}
                   counts:
                     type: object
                     additionalProperties: {type: integer}
@@ -2514,13 +2592,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    maxItems: 6
-                    items: {$ref: '#/components/schemas/StoreSummary'}
-                  meta: {$ref: '#/components/schemas/PaginationMeta'}
+                type: array
+                maxItems: 6
+                items: {$ref: '#/components/schemas/StoreSummary'}
 
   /stores:
     get:
@@ -2569,8 +2643,8 @@ paths:
       security: []
       parameters:
       - {$ref: '#/components/parameters/IdParam'}
-      - {$ref: '#/components/parameters/PageParam'}
       - {$ref: '#/components/parameters/LimitParam'}
+      - {$ref: '#/components/parameters/CursorParam'}
       responses:
         '200':
           description: Store products
@@ -2581,8 +2655,11 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: {$ref: '#/components/schemas/Product'}
-                  meta: {$ref: '#/components/schemas/PaginationMeta'}
+                    items: {$ref: '#/components/schemas/ProductSummary'}
+                  meta:
+                    properties:
+                      nextCursor: {type: string}
+                      hasMore: {type: boolean}
 
   /stores/{id}/reviews:
     get:
@@ -2607,7 +2684,10 @@ paths:
                   data:
                     type: array
                     items: {$ref: '#/components/schemas/Review'}
-                  meta: {$ref: '#/components/schemas/PaginationMeta'}
+                  meta:
+                    properties:
+                      nextCursor: {type: string}
+                      hasMore: {type: boolean}
                   counts:
                     type: object
                     additionalProperties: {type: integer}
@@ -2616,15 +2696,20 @@ paths:
     post:
       tags: [Buyer - Favorites]
       summary: Follow a store
+      security:
+        - cookieAuth: []
       parameters:
       - {$ref: '#/components/parameters/IdParam'}
       - $ref: '#/components/parameters/CsrfHeader'
       responses:
         '204': {description: Store followed}
       x-csrf-required: true
+
     delete:
       tags: [Buyer - Favorites]
       summary: Unfollow a store
+      security:
+        - cookieAuth: []
       parameters:
       - {$ref: '#/components/parameters/IdParam'}
       - $ref: '#/components/parameters/CsrfHeader'
@@ -4047,6 +4132,7 @@ paths:
       x-required-roles:
       - admin
       - super_admin
+
   /auth/csrf:
     get:
       tags:
@@ -4060,6 +4146,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CsrfToken'
+
+  /auth/access/csrf:
+    get:
+      tags:
+      - Auth
+      summary: Get CSRF token for an authenticated access session
+      description: Returns the CSRF token required by authenticated account and sudo-mode actions.
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfToken'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /auth/refresh:
     post:
       tags:

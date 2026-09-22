@@ -15,4 +15,5 @@ export class PublicController {
         const response = await storeClient.getProducts(id,userId)
         return reply.status(response.status).send(response.data)
     }
+    
 }
