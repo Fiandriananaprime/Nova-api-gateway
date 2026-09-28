@@ -11,4 +11,13 @@ export class AuthClient {
       const session = await http.post(`${this.baseUrl}/internal/validate`,{access_token:accessToken})
       return session.data
     }
+
+    async validateCsrf(accessToken: string, csrfToken: string): Promise<boolean> {
+      const response = await http.post(`${this.baseUrl}/internal/validate-csrf`, {
+        access_token: accessToken,
+        csrf_token: csrfToken,
+      });
+
+      return response.data.valid === true;
+    }
 }
