@@ -716,31 +716,39 @@ components:
 
     PaymentMethod:
       type: object
+      required: [ id, type, isDefault, verified, createdAt, updatedAt ]
       properties:
-        id: {type: string, format: uuid}
-        type:
-          type: string
-          enum: [card, mvola, orange_money]
-        provider: {type: string, nullable: true}
-        label: {type: string, nullable: true}
-        last4: {type: string, nullable: true}
-        phone: {type: string, nullable: true}
-        isDefault: {type: boolean}
-        createdAt: {type: string, format: date-time}
-        verified: {type: boolean}
-        expired: {type: boolean}
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [ card, mvola, orange_money ] }
+        provider: { type: string, nullable: true }
+        label: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
+        last4: { type: string, nullable: true }
+        expMonth: { type: integer, nullable: true }
+        expYear: { type: integer, nullable: true }
+        phone: { type: string, nullable: true }
+        isDefault: { type: boolean }
+        verified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
-    AddPaymentMethodRequest:
+    CreatePaymentMethodRequest:
       type: object
-      required: [type]
+      required: [ type ]
       properties:
-        type:
-          type: string
-          enum: [card, mvola, orange_money]
-        token: {type: string, nullable: true, description: Payment provider token. Never send raw card data to Nova 
-            Market.}
-        phone: {type: string, nullable: true}
-        isDefault: {type: boolean, default: false}
+        type: { type: string, enum: [ card, mvola, orange_money ] }
+        label: { type: string, nullable: true }
+        provider: { type: string, nullable: true }
+        providerPaymentMethodId: { type: string, nullable: true, description: Payment provider ID. Never send raw card data. }
+        phone: { type: string, nullable: true }
+        isDefault: { type: boolean, default: false }
+
+    PatchPaymentMethodRequest:
+      type: object
+      properties:
+        label: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        isDefault: { type: boolean }
 
     CartItem:
       type: object
@@ -2818,7 +2826,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AddPaymentMethodRequest'}
+            schema: {$ref: '#/components/schemas/CreatePaymentMethodRequest'}
       responses:
         '201':
           description: Payment method created
@@ -2840,7 +2848,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AddPaymentMethodRequest'}
+            schema: {$ref: '#/components/schemas/PatchPaymentMethodRequest'}
       responses:
         '200':
           description: Payment method updated
@@ -2893,34 +2901,6 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/BuyerPreferences'}
-      x-csrf-required: true
-      parameters:
-      - $ref: '#/components/parameters/CsrfHeader'
-
-  /buyer/notifications/preferences:
-    get:
-      tags: [Buyer - Profile & Settings]
-      summary: Get buyer notification preferences
-      responses:
-        '200':
-          description: Notification preferences
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/NotificationPrefs'}
-    patch:
-      tags: [Buyer - Profile & Settings]
-      summary: Update buyer notification preferences
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/NotificationPrefs'}
-      responses:
-        '200':
-          description: Updated notification preferences
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/NotificationPrefs'}
       x-csrf-required: true
       parameters:
       - $ref: '#/components/parameters/CsrfHeader'

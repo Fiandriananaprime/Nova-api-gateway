@@ -44,7 +44,12 @@ export function registerErrorHandler(app: FastifyInstance) {
       return reply.status(400).send(response);
     }
 
-    if (error.statusCode && error.statusCode < 500) {
+    if (
+      error.statusCode &&
+      error.statusCode < 500 &&
+      typeof error.code === "string" &&
+      typeof error.message === "string"
+    ) {
       const response: Error = {
         error: {
           code: error.code || "REQUEST_ERROR",
@@ -57,11 +62,17 @@ export function registerErrorHandler(app: FastifyInstance) {
 
     const response: Error = {
       error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "An unexpected error occurred.",
+        code:
+          typeof error.code === "string"
+            ? error.code
+            : "INTERNAL_SERVER_ERROR",
+        message:
+          typeof error.message === "string"
+            ? error.message
+            : "An unexpected error occurred.",
       },
     };
 
-    return reply.status(500).send(response);
+    return reply.status(error.statusCode || 500).send(response);
   });
 }

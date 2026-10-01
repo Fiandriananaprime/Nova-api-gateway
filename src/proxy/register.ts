@@ -26,6 +26,18 @@ export const registerProxies = async (app: FastifyInstance) => {
       upstream,
       prefix: route.prefix,
       rewritePrefix: `${API_PREFIX}${route.prefix}`,
+      replyOptions: {
+        rewriteRequestHeaders: (request, headers) => {
+          const forwardedHeaders = { ...headers };
+          delete forwardedHeaders["x-user-id"];
+
+          if (request.userId) {
+            forwardedHeaders["x-user-id"] = request.userId;
+          }
+
+          return forwardedHeaders;
+        },
+      },
       preHandler: route.public
         ? undefined
         : route.csrf
