@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import proxy from "@fastify/http-proxy";
 import { services } from "../config/index.js";
 import { proxyRoutes } from "./routes.js";
-import { authenticate } from "../middleware/auth.middleware.js";
+import { authenticate, authenticateOptional } from "../middleware/auth.middleware.js";
 import { requireCsrf } from "../middleware/csrf.middleware.js";
 
 const API_PREFIX = "/api";
@@ -25,16 +25,30 @@ export const registerProxies = async (app: FastifyInstance) => {
     await app.register(proxy, {
       upstream,
       prefix: route.prefix,
-      rewritePrefix: `${API_PREFIX}${route.prefix}`,
-      preHandler: route.public
-        ? undefined
-        : route.csrf
-          ? async (request, reply) => {
-              await authenticate(request);
-              if (reply.sent) return;
-              await requireCsrf(request, reply);
-            }
-          : authenticate,
+      rewritePrefix: route.rewritePrefix ?? `${API_PREFIX}${route.prefix}`,
+      replyOptions: {
+        rewriteRequestHeaders: (request, headers) => {
+          const forwardedHeaders = { ...headers };
+          delete forwardedHeaders["x-user-id"];
+
+          if (request.userId) {
+            forwardedHeaders["x-user-id"] = request.userId;
+          }
+
+          return forwardedHeaders;
+        },
+      },
+      preHandler: route.optionalAuth
+        ? authenticateOptional
+        : route.public
+          ? undefined
+          : route.csrf
+            ? async (request, reply) => {
+                await authenticate(request);
+                if (reply.sent) return;
+                await requireCsrf(request, reply);
+              }
+            : authenticate,
     });
   }
 };

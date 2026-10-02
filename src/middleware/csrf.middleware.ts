@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { AuthClient } from "../clients/auth.client";
+import { getAccessToken } from "./auth.middleware";
 
 const authClient = new AuthClient();
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -7,7 +8,7 @@ const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 export const requireCsrf = async (request: FastifyRequest, reply: FastifyReply) => {
   if (safeMethods.has(request.method)) return;
 
-  const accessToken = request.cookies.access_token;
+  const accessToken = getAccessToken(request);
   const csrfToken = request.headers["x-csrf-token"];
 
   if (!accessToken) {

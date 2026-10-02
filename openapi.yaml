@@ -109,6 +109,11 @@ components:
       in: cookie
       name: access_token
       description: Secure, HttpOnly access-token cookie. Sent automatically by the browser over HTTPS.
+    verificationCookie:
+      type: apiKey
+      in: cookie
+      name: verification_token
+      description: HttpOnly verification-session cookie used during password reset and account verification.
     refreshCookieAuth:
       type: apiKey
       in: cookie
@@ -352,6 +357,15 @@ components:
         identifier:
           type: string
           description: Email or phone number of the account to reset password for.
+
+    PasswordResetRequest:
+      type: object
+      required: [newPassword, code, channel]
+      additionalProperties: false
+      properties:
+        newPassword: {type: string, format: password, minLength: 8, maxLength: 100}
+        code: {type: string, pattern: '^[0-9]{6}$'}
+        channel: {type: string, enum: [email, phone]}
 
     VerificationCodeRequest:
       type: object
@@ -716,31 +730,39 @@ components:
 
     PaymentMethod:
       type: object
+      required: [ id, type, isDefault, verified, createdAt, updatedAt ]
       properties:
-        id: {type: string, format: uuid}
-        type:
-          type: string
-          enum: [card, mvola, orange_money]
-        provider: {type: string, nullable: true}
-        label: {type: string, nullable: true}
-        last4: {type: string, nullable: true}
-        phone: {type: string, nullable: true}
-        isDefault: {type: boolean}
-        createdAt: {type: string, format: date-time}
-        verified: {type: boolean}
-        expired: {type: boolean}
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [ card, mvola, orange_money ] }
+        provider: { type: string, nullable: true }
+        label: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
+        last4: { type: string, nullable: true }
+        expMonth: { type: integer, nullable: true }
+        expYear: { type: integer, nullable: true }
+        phone: { type: string, nullable: true }
+        isDefault: { type: boolean }
+        verified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
-    AddPaymentMethodRequest:
+    CreatePaymentMethodRequest:
       type: object
-      required: [type]
+      required: [ type ]
       properties:
-        type:
-          type: string
-          enum: [card, mvola, orange_money]
-        token: {type: string, nullable: true, description: Payment provider token. Never send raw card data to Nova 
-            Market.}
-        phone: {type: string, nullable: true}
-        isDefault: {type: boolean, default: false}
+        type: { type: string, enum: [ card, mvola, orange_money ] }
+        label: { type: string, nullable: true }
+        provider: { type: string, nullable: true }
+        providerPaymentMethodId: { type: string, nullable: true, description: Payment provider ID. Never send raw card data. }
+        phone: { type: string, nullable: true }
+        isDefault: { type: boolean, default: false }
+
+    PatchPaymentMethodRequest:
+      type: object
+      properties:
+        label: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        isDefault: { type: boolean }
 
     CartItem:
       type: object
@@ -867,6 +889,33 @@ components:
         fileUrl: {type: string, nullable: true}
         uploadedAt: {type: string, format: date-time}
         rejectionReason: {type: string, nullable: true}
+
+    SellerApplicationRequest:
+      type: object
+      required: [store]
+      properties:
+        comments: {type: string}
+        store:
+          type: object
+          required: [location, businessType, documents]
+          properties:
+            location: {type: string}
+            storeName: {type: string}
+            businessType:
+              type: string
+              enum: [individual, company]
+            taxId: {type: string}
+            registrationNumber: {type: string}
+            documents:
+              type: array
+              items:
+                type: object
+                required: [type, fileUrl]
+                properties:
+                  type:
+                    type: string
+                    enum: [identity, business_registration, tax_document, bank_account]
+                  fileUrl: {type: string, format: uri}
 
     SellerApplication:
       type: object
@@ -1826,25 +1875,28 @@ paths:
                 $ref: '#/components/schemas/User'
         '409': {description: Email already in use}
         '422': {$ref: '#/components/responses/ValidationError'}
-      security: []
+      security:
+      - cookieAuth: []
   
   /auth/register/seller:
     post:
       tags: [Auth]
       summary: Submit seller application
-      security: []
+      security:
+        - cookieAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/SellerApplication'}
+            schema: {$ref: '#/components/schemas/SellerApplicationRequest'}
       responses:
         '201':
           description: Seller application submitted
           content:
             application/json:
               schema: {$ref: '#/components/schemas/SellerApplication'}
-        '409': {description: Email already in use}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {description: A seller application already exists for this account}
         '422': {$ref: '#/components/responses/ValidationError'}
 
   /auth/login:
@@ -1897,6 +1949,37 @@ paths:
             schema: {$ref: '#/components/schemas/ForgotPasswordRequest'}
       responses:
         '202': {description: Password reset request accepted}
+        '400': {$ref: '#/components/responses/ValidationError'}
+
+  /auth/password/reset:
+    post:
+      tags: [Auth]
+      summary: Reset the account password with a verification code
+      security:
+        - verificationCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message: {type: string, example: Password reset successfully}
+        '400': {description: Invalid or expired verification code}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+      x-csrf-required: true
+      parameters:
+      - $ref: '#/components/parameters/CsrfHeader'
 
   /auth/email/send-verification:
     post:
@@ -2818,7 +2901,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AddPaymentMethodRequest'}
+            schema: {$ref: '#/components/schemas/CreatePaymentMethodRequest'}
       responses:
         '201':
           description: Payment method created
@@ -2840,7 +2923,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AddPaymentMethodRequest'}
+            schema: {$ref: '#/components/schemas/PatchPaymentMethodRequest'}
       responses:
         '200':
           description: Payment method updated
@@ -2893,34 +2976,6 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/BuyerPreferences'}
-      x-csrf-required: true
-      parameters:
-      - $ref: '#/components/parameters/CsrfHeader'
-
-  /buyer/notifications/preferences:
-    get:
-      tags: [Buyer - Profile & Settings]
-      summary: Get buyer notification preferences
-      responses:
-        '200':
-          description: Notification preferences
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/NotificationPrefs'}
-    patch:
-      tags: [Buyer - Profile & Settings]
-      summary: Update buyer notification preferences
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/NotificationPrefs'}
-      responses:
-        '200':
-          description: Updated notification preferences
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/NotificationPrefs'}
       x-csrf-required: true
       parameters:
       - $ref: '#/components/parameters/CsrfHeader'
@@ -4137,8 +4192,10 @@ paths:
     get:
       tags:
       - Auth
-      summary: Get CSRF token
-      security: []
+      summary: Get CSRF token for an authenticated access session
+      description: Returns the CSRF token required by authenticated account and sudo-mode actions.
+      security:
+      - cookieAuth: []
       responses:
         '200':
           description: CSRF token

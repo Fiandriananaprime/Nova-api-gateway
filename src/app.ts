@@ -12,7 +12,6 @@ import {
   registerObservability,
 } from "./plugins/index.js";
 
-import { registerRoutes } from "./route.js";
 import { registerProxies } from "./proxy/index.js";
 
 import {
@@ -35,7 +34,6 @@ const buildApp = () => {
   app.register(registerWebSocket);
   app.register(websocketRoutes);
 
-  app.register(registerRoutes);
   app.register(registerProxies);
 
   registerHealth(app);
